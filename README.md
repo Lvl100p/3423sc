@@ -20,7 +20,7 @@ the turn on which that square was placed.  NextPiece (accessed by getNextPiece)
 contains the ID (0-6) of the piece you are about to play.
 
 * ID 0: xx  
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xx
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xx
 
 
 * ID 1: xxxx
@@ -29,16 +29,16 @@ contains the ID (0-6) of the piece you are about to play.
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xxx
 
 * ID 3: x  
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xxx
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xxx
 
 * ID 4: &nbsp;x  
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xxx
 
-* ID 5: &nbsp;xx  
+* ID 5: &nbsp;&nbsp;xx  
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xx
 
 * ID 6: xx  
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xx
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xx
 
 Moves are defined by two numbers: the SLOT, the leftmost column of the piece and
 the ORIENT, the orientation of the piece.  legalMoves() gives an n x 2 int array

@@ -27,6 +27,39 @@ public class PlayerSkeleton {
 		return 0;
 	}
 	
+	/**
+	 * @param s
+	 * @param col
+	 * @return corresponding column height of the wall
+	 */
+	public int getColHeight(State s, int col) {
+	    return s.getTop()[col];
+	}
+	
+	/**
+	 * @param s
+	 * @param col
+	 * @return absolute difference between adjacent column heights
+	 */
+	public int getAdjColHeight(State s, int col) {
+	    return s.getTop()[col] - s.getTop()[col + 1];
+	}
+	
+	/**
+	 * @param s
+	 * @return maximum column height
+	 */
+	public int getMaxColHeight(State s) {
+	    int max = 0;
+	    for (int i = 0; i < s.COLS; i++) {
+	        if (getColHeight(s, i) > max) {
+	            max = getColHeight(s, i);
+	        }
+	    }
+	    
+	    return max;
+	}
+	
 	public static void main(String[] args) {
 		State s = new State();
 		new TFrame(s);

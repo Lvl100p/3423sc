@@ -64,6 +64,28 @@ public class PlayerSkeleton {
 	    return max;
 	}
 	
+	/**
+	 * @param s
+	 * @return number of holes
+	 */
+	public int getNumOfHoles(State s) {
+		int holes = 0;
+		
+		// to add a dummy boundary along the 10th column's right side.
+		for(int k = 0; k < s.getTop[9]; k++) {		// the top of the 10th column
+			s.getField()[k][10] = 1;				// to signify the right boundary of the 10th column
+		}
+		
+		for(int i = 0; i < s.COLS; i++) {
+			for(int j = 0; j < s.getTop()[i]; j++) {
+				if(s.getField()[j][i] == 0 && s.getField()[j+1][i+1] != 0 && s.getField()[j][i+1] != 0) {
+					holes++;
+				}
+			}
+		}
+		return holes;
+	}
+	
 	public static void main(String[] args) {
 		State s = new State();
 		new TFrame(s);

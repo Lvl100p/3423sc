@@ -68,8 +68,8 @@ public class PlayerSkeleton {
 		vector[16] = -2;
 		vector[17] = -1.2;
 		vector[18] = -0.5;
-		vector[19] = -5;
-		vector[20] = -1;
+		vector[19] = -8;
+		vector[20] = -1.5;
 	}
 	
 	//implement this function to have a working system
@@ -267,19 +267,17 @@ public class PlayerSkeleton {
 	 */
 	public int getNumOfHoles(int[][] field, int[] top) {
 		int holes = 0;
-		
-		// to add a dummy boundary along the 10th column's right side.
-		for(int k = 0; k < top[9]; k++) {		// the top of the 10th column
-			field[k][10] = 1;				// to signify the right boundary of the 10th column
-		}
-		
-		for(int i = 0; i < State.COLS; i++) {
-			for(int j = 0; j < top[i]; j++) {
-				if(field[j][i] == 0 && field[j+1][i+1] != 0 && field[j][i+1] != 0) {
+
+		for (int i = 0; i < State.COLS; i++) { 
+			int j = 0; //Row number
+			while (j < top[i]) {
+				if (field[j][i] == 0) {
 					holes++;
 				}
+				j++;
 			}
 		}
+		
 		return holes;
 	}
 	

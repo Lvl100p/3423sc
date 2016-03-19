@@ -97,7 +97,7 @@ public class PlayerSkeleton {
 			}*/
 		}
 		
-		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+		//System.out.println("You have completed "+s.getRowsCleared()+" rows.");
 		
 		return s.getRowsCleared();
 	}
@@ -331,7 +331,7 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) throws IOException {
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.improveVector(VECTOR_SIZE * 10, 30);
+		p.improveVector(VECTOR_SIZE * 100, 10);
 		p.writeVectorToFile(FILENAME_VECTOR);
 		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}

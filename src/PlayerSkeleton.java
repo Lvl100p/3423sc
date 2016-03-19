@@ -9,9 +9,12 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 
 public class PlayerSkeleton {
+	/*********************  CONSTANTS ***********************/
 	private static final int VECTOR_SIZE = 21;
-	private static final String FILENAME = "weights.txt";
+	private static final String FILENAME_VECTOR = "weights.txt";
+	private static final String FILENAME_SCORE = "score.txt";
 	
+	/********************* CLASS ATTRIBUTES **************/
 	private static int[][] pWidth = {
 			{2},
 			{1,4},
@@ -51,17 +54,56 @@ public class PlayerSkeleton {
 		{{1,2,2},{3,2}},
 		{{2,2,1},{2,3}}
 	};
-
-	private double[] weightVector;
-
-	public static final Double Lambda = 0.6;
 	
+	/********************* INSTANCE ATTRIBUTES ********************/
+	private double[] weightVector;
+	private double[] adjustments; //Contains the values of adjustments to be made to each weight 
+	private double maxAvgScore; //The maximum average score carried over from previous sessions
+	
+	/********************* CONSTRUCTOR *********************/
 	public PlayerSkeleton() throws IOException {	
 		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
-		readVectorFromFile(weightVector, FILENAME);
+		adjustments = new double[VECTOR_SIZE];
+		Arrays.fill(adjustments, -0.05); //Stub for now, can be fine-tuned later on
+		readVectorFromFile(FILENAME_VECTOR);
+		readScoreFromFile(FILENAME_SCORE);
 	}
 	
-	private void writeVectorToFile(double[] weightVector, String fileName) throws FileNotFoundException {
+	//Plays the specified number of games, and returns the average score.
+	private double playGames(int numGamesToPlay) {
+		int sumOfScores = 0;
+		
+		for (int i = 0; i < numGamesToPlay; i++) {
+			sumOfScores += playGame();
+		}
+		
+		return (double) sumOfScores / numGamesToPlay;
+	}
+	
+	//Plays a game and returns the score i.e number of rows cleared.
+	private int playGame() {
+		State s = new State();
+		//new TFrame(s);
+		
+		while(!s.hasLost()) {
+			s.makeMove(pickMove(s, s.legalMoves()));
+			//s.draw();
+			//s.drawNext(0,0);
+			
+			/*try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}*/
+		}
+		
+		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+		
+		return s.getRowsCleared();
+	}
+	
+	/********************* FILE IO METHODS ********************/
+	private void writeVectorToFile(String fileName) throws FileNotFoundException {
 		PrintWriter pw = new PrintWriter(new File(fileName)); //Tries to create the file if it does not exist
 		
 		for (int i = 0; i < VECTOR_SIZE; i++) {
@@ -72,11 +114,18 @@ public class PlayerSkeleton {
 		pw.close();
 	}
 	
-	private void readVectorFromFile(double[] weightVector, String fileName) throws IOException {
+	private void writeScoreToFile(double score, String fileName) throws FileNotFoundException {
+		PrintWriter pw = new PrintWriter(new File(fileName)); //Tries to create the file if it does not exist
+		pw.print(score);
+		pw.flush();
+		pw.close();
+	}
+	
+	private void readVectorFromFile(String fileName) throws IOException {
 		File f = new File(fileName);
 		
 		if (!f.exists()) {
-			writeVectorToFile(weightVector, fileName); //Writes initial weight vector of all zeroes to file
+			writeVectorToFile(fileName); //Writes initial weight vector of all zeroes to file
 		} else {
 			BufferedReader br = new BufferedReader(new FileReader(f));
 			
@@ -88,35 +137,43 @@ public class PlayerSkeleton {
 		}
 	}
 	
-	//implement this function to have a working system
-	public int pickMove(State s, int[][] legalMoves) {
+	private void readScoreFromFile(String fileName) throws IOException {
+		File f = new File(fileName);
 		
-		// strategy: given a set of all possible legal moves, choose the one that maximizes the sum of the 
-		// reward and utility functions
+		if (!f.exists()) {
+			writeScoreToFile(0, FILENAME_SCORE);
+		} else {
+			BufferedReader br = new BufferedReader(new FileReader(f));
+			maxAvgScore = Double.parseDouble(br.readLine());
+			
+			br.close();
+		}
+	}
+	
+	//Improves the current weight vector via an iterative learning method.
+	private void improveVector(int numAdjustments, int numGamesToPlay) {
+		int currWeightIndex = 0; //Index of current weight to be adjusted
 		
-		// reward: number of rows cleared
-		// utility: linear weighted sum of features
+		for (int i = 0; i < numAdjustments; i++) {
+			weightVector[currWeightIndex] += adjustments[currWeightIndex];
+			double currAvgScore = playGames(numGamesToPlay);
+
+			if (currAvgScore > maxAvgScore) {
+				maxAvgScore = currAvgScore;
+			} else { 
+				weightVector[currWeightIndex] -= adjustments[currWeightIndex]; //Undo adjustments
+			}
 		
-		// State class has public instance method getRowsCleared which probably can be used to get the value 
-		// of the reward function for a corresponding state
-		
-		// Utility functions: column height information can probably be accessed via public instance method
-		// 					  getTop of State class
-		//
-		//                    possible way to find holes: for each column, an empty square in a column is a 
-		//                    hole if it is below the top of the column and directly to its left or right
-		//                    are non empty squares? not sure about exact definition of hole
-		//					
-		//					  for now the weight vector can be hardcoded
-		//					  eventually we can implement the weight vector learning function as described
-		//					  in page 15 of ref2.pdf
-		
+			currWeightIndex = (currWeightIndex + 1) % (VECTOR_SIZE - 1);
+		}
+	}
+	
+	private int pickMove(State s, int[][] legalMoves) {
 		int optimalMove = 0;
 		double maxEvaluation = -Double.MAX_VALUE;
 
 		for (int i = 0; i < legalMoves.length; i++) {
-
-			double evaluation = simulate(s, i, weightVector);
+			double evaluation = simulate(s, i);
 
 			if (evaluation > maxEvaluation) {
 				maxEvaluation = evaluation;
@@ -127,17 +184,18 @@ public class PlayerSkeleton {
 		return optimalMove;
 	}
 	
-	private double simulate(State state, int move, double[] vector) {
+	private double simulate(State state, int move) {
 		int[][] simulatedField = copyField(state.getField());
 		int[] simulatedTop = Arrays.copyOf(state.getTop(), state.getTop().length);
+		//This also modifies simulatedField and simulatedTop.
 		double reward = makeMove(move, simulatedField, simulatedTop, state.getNextPiece());
-		double utility = calculateUtility(simulatedField, simulatedTop, vector);
+		double utility = calculateUtility(simulatedField, simulatedTop);
 
 		return reward + utility;
 	}
 	
-	private double calculateUtility(int[][] field, int[] top, double[] vector) {
-		int utility = 0;
+	private double calculateUtility(int[][] field, int[] top) {
+		double utility = 0;
 		int[] features = new int[VECTOR_SIZE];
 	
 		for (int i = 0; i < State.COLS; i++) {
@@ -145,22 +203,21 @@ public class PlayerSkeleton {
 		}
 	
 		for (int i = 0; i < State.COLS - 1; i++) {
-			features[State.COLS + i] = getAdjColHeight(top, i);
+			features[State.COLS + i] = getAdjHeightDiff(top, i);
 		}
 	
 		features[19] = getMaxColHeight(top);
 		features[20] = getNumOfHoles(field, top);
 	
 		for (int i = 0; i < VECTOR_SIZE; i++) {
-			utility += vector[i] * features[i];
+			utility += weightVector[i] * features[i];
 		}
 	
 		return utility;
 	}
-	
 
 	// Modified from State.java
-	// Return the number of rows cleared, -1 if the game is lost
+	// Return the number of rows cleared, -INF if the game is lost
 	private int makeMove(int move, int[][] field, int[] top, int nextPiece) {
 		int orient = State.legalMoves[nextPiece][move][State.ORIENT];
 		int slot = State.legalMoves[nextPiece][move][State.SLOT];
@@ -174,7 +231,7 @@ public class PlayerSkeleton {
 		
 		//check if game ended
 		if(height+pHeight[nextPiece][orient] >= State.ROWS) {
-			return -1;
+			return Integer.MIN_VALUE;
 		}
 		
 		//for each column in the piece - fill in the appropriate blocks
@@ -224,7 +281,7 @@ public class PlayerSkeleton {
 	}
 
 	private int[][] copyField(int[][] originalField) {
-		int[][] simulatedField = new int[State.ROWS][State.COLS + 1];
+		int[][] simulatedField = new int[State.ROWS][State.COLS];
 
 		for (int i = 0; i < State.ROWS; i++) {
 			for (int j = 0; j < State.COLS; j++) {
@@ -235,29 +292,16 @@ public class PlayerSkeleton {
 		return simulatedField;
 	}
 	
-	/**
-	 * @param top
-	 * @param col
-	 * @return corresponding column height of the wall
-	 */
 	public int getColHeight(int[] top, int col) {
 	    return top[col];
 	}
 	
-	/**
-	 * @param top
-	 * @param col
-	 * @return absolute difference between adjacent column heights
-	 */
-	public int getAdjColHeight(int[] top, int col) {
+	//Returns the absolute difference between adjacent column heights.
+	private int getAdjHeightDiff(int[] top, int col) {
 	    return Math.abs(top[col] - top[col + 1]);
 	}
 	
-	/**
-	 * @param top
-	 * @return maximum column height
-	 */
-	public int getMaxColHeight(int[] top) {
+	private int getMaxColHeight(int[] top) {
 	    int max = 0;
 	    for (int i = 0; i < State.COLS; i++) {
 	        if (getColHeight(top, i) > max) {
@@ -268,12 +312,7 @@ public class PlayerSkeleton {
 	    return max;
 	}
 	
-	/**
-	 * @param field
-	 * @param top
-	 * @return number of holes
-	 */
-	public int getNumOfHoles(int[][] field, int[] top) {
+	private int getNumOfHoles(int[][] field, int[] top) {
 		int holes = 0;
 
 		for (int i = 0; i < State.COLS; i++) { 
@@ -282,6 +321,7 @@ public class PlayerSkeleton {
 				if (field[j][i] == 0) {
 					holes++;
 				}
+				
 				j++;
 			}
 		}
@@ -290,35 +330,9 @@ public class PlayerSkeleton {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		State s = new State();
-		new TFrame(s);
 		PlayerSkeleton p = new PlayerSkeleton();
-		while(!s.hasLost()) {
-			s.makeMove(p.pickMove(s,s.legalMoves()));
-			s.draw();
-			s.drawNext(0,0);
-			try {
-				Thread.sleep(300);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+		p.improveVector(VECTOR_SIZE * 50, 10);
+		p.writeVectorToFile(FILENAME_VECTOR);
+		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}
-	
-	
-	//From Matthew
-	private double temporalDiff(State state, State nextState){
-		
-		return 0.0;
-	}
-
-	//From Matthew
-	private double sumtemporalDiff(int s, int k){
-		
-		Double LambdaConstant = pow(Lambda, s-k);
-		
-		return 0.0;
-	}
-	
 }

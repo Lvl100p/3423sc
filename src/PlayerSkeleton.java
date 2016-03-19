@@ -64,7 +64,7 @@ public class PlayerSkeleton {
 	public PlayerSkeleton() throws IOException {	
 		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
 		adjustments = new double[VECTOR_SIZE];
-		Arrays.fill(adjustments, -0.01); //Stub for now, can be fine-tuned later on
+		Arrays.fill(adjustments, -0.001); //Stub for now, can be fine-tuned later on
 		readVectorFromFile(FILENAME_VECTOR);
 		readScoreFromFile(FILENAME_SCORE);
 	}
@@ -91,7 +91,7 @@ public class PlayerSkeleton {
 			//s.drawNext(0,0);
 			
 			/*try {
-				Thread.sleep(500);
+				Thread.sleep(300);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}*/
@@ -164,7 +164,7 @@ public class PlayerSkeleton {
 				weightVector[currWeightIndex] -= adjustments[currWeightIndex]; //Undo adjustments
 			}
 		
-			currWeightIndex = (currWeightIndex + 1) % (VECTOR_SIZE - 1);
+			currWeightIndex = (currWeightIndex + 1) % (VECTOR_SIZE);
 		}
 	}
 	
@@ -331,7 +331,7 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) throws IOException {
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.improveVector(VECTOR_SIZE * 10, 10);
+		p.improveVector(VECTOR_SIZE * 10, 30);
 		p.writeVectorToFile(FILENAME_VECTOR);
 		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}

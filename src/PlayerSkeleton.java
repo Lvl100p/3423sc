@@ -1,8 +1,16 @@
 import static java.lang.Math.pow;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 
 public class PlayerSkeleton {
+	private static final int VECTOR_SIZE = 21;
+	private static final String FILENAME = "weights.txt";
 	
 	private static int[][] pWidth = {
 			{2},
@@ -23,6 +31,7 @@ public class PlayerSkeleton {
 			{2,3},
 			{2,3}
 	};
+	
 	private static int[][][] pBottom = {
 		{{0,0}},
 		{{0},{0,0,0,0}},
@@ -32,6 +41,7 @@ public class PlayerSkeleton {
 		{{0,0,1},{1,0}},
 		{{1,0,0},{0,1}}
 	};
+	
 	private static int[][][] pTop = {
 		{{2,2}},
 		{{4},{1,1,1,1}},
@@ -42,34 +52,40 @@ public class PlayerSkeleton {
 		{{2,2,1},{2,3}}
 	};
 
-	private static final int VECTOR_SIZE = 21;
-
-	private double[] vector = new double[VECTOR_SIZE];
+	private double[] weightVector;
 
 	public static final Double Lambda = 0.6;
 	
-	public PlayerSkeleton() {	
-		vector[0] = -1;
-		vector[1] = -1.5;
-		vector[2] = -2.3;
-		vector[3] = -3.4;
-		vector[4] = -5;
-		vector[5] = -5;
-		vector[6] = -3.4;
-		vector[7] = -2.3;
-		vector[8] = -1.5;
-		vector[9] = -1;
-		vector[10] = -0.5;
-		vector[11] = -1.2;
-		vector[12] = -2;
-		vector[13] = -4;
-		vector[14] = -4;
-		vector[15] = -2.4;
-		vector[16] = -2;
-		vector[17] = -1.2;
-		vector[18] = -0.5;
-		vector[19] = -8;
-		vector[20] = -1.5;
+	public PlayerSkeleton() throws IOException {	
+		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
+		readVectorFromFile(weightVector, FILENAME);
+	}
+	
+	private void writeVectorToFile(double[] weightVector, String fileName) throws FileNotFoundException {
+		PrintWriter pw = new PrintWriter(new File(fileName)); //Tries to create the file if it does not exist
+		
+		for (int i = 0; i < VECTOR_SIZE; i++) {
+			pw.println(weightVector[i]);
+		}
+		
+		pw.flush();
+		pw.close();
+	}
+	
+	private void readVectorFromFile(double[] weightVector, String fileName) throws IOException {
+		File f = new File(fileName);
+		
+		if (!f.exists()) {
+			writeVectorToFile(weightVector, fileName); //Writes initial weight vector of all zeroes to file
+		} else {
+			BufferedReader br = new BufferedReader(new FileReader(f));
+			
+			for (int i = 0; i < VECTOR_SIZE; i++) {
+				weightVector[i] = Double.parseDouble(br.readLine());
+			}
+			
+			br.close();
+		}
 	}
 	
 	//implement this function to have a working system
@@ -100,7 +116,7 @@ public class PlayerSkeleton {
 
 		for (int i = 0; i < legalMoves.length; i++) {
 
-			double evaluation = simulate(s, i, vector);
+			double evaluation = simulate(s, i, weightVector);
 
 			if (evaluation > maxEvaluation) {
 				maxEvaluation = evaluation;
@@ -112,22 +128,16 @@ public class PlayerSkeleton {
 	}
 	
 	private double simulate(State state, int move, double[] vector) {
-
 		int[][] simulatedField = copyField(state.getField());
-		
 		int[] simulatedTop = Arrays.copyOf(state.getTop(), state.getTop().length);
-
 		double reward = makeMove(move, simulatedField, simulatedTop, state.getNextPiece());
-
 		double utility = calculateUtility(simulatedField, simulatedTop, vector);
 
 		return reward + utility;
 	}
 	
 	private double calculateUtility(int[][] field, int[] top, double[] vector) {
-		
 		int utility = 0;
-	
 		int[] features = new int[VECTOR_SIZE];
 	
 		for (int i = 0; i < State.COLS; i++) {
@@ -152,7 +162,6 @@ public class PlayerSkeleton {
 	// Modified from State.java
 	// Return the number of rows cleared, -1 if the game is lost
 	private int makeMove(int move, int[][] field, int[] top, int nextPiece) {
-		
 		int orient = State.legalMoves[nextPiece][move][State.ORIENT];
 		int slot = State.legalMoves[nextPiece][move][State.SLOT];
 		
@@ -215,7 +224,6 @@ public class PlayerSkeleton {
 	}
 
 	private int[][] copyField(int[][] originalField) {
-
 		int[][] simulatedField = new int[State.ROWS][State.COLS + 1];
 
 		for (int i = 0; i < State.ROWS; i++) {
@@ -281,7 +289,7 @@ public class PlayerSkeleton {
 		return holes;
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		State s = new State();
 		new TFrame(s);
 		PlayerSkeleton p = new PlayerSkeleton();

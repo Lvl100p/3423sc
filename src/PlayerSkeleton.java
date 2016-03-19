@@ -64,7 +64,7 @@ public class PlayerSkeleton {
 	public PlayerSkeleton() throws IOException {	
 		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
 		adjustments = new double[VECTOR_SIZE];
-		Arrays.fill(adjustments, -0.05); //Stub for now, can be fine-tuned later on
+		Arrays.fill(adjustments, -0.01); //Stub for now, can be fine-tuned later on
 		readVectorFromFile(FILENAME_VECTOR);
 		readScoreFromFile(FILENAME_SCORE);
 	}

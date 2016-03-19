@@ -91,7 +91,7 @@ public class PlayerSkeleton {
 			//s.drawNext(0,0);
 			
 			/*try {
-				Thread.sleep(1000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}*/
@@ -331,7 +331,7 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) throws IOException {
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.improveVector(VECTOR_SIZE * 50, 10);
+		p.improveVector(VECTOR_SIZE * 10, 10);
 		p.writeVectorToFile(FILENAME_VECTOR);
 		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}

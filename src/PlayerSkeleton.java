@@ -6,7 +6,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class PlayerSkeleton {
 	/*********************  CONSTANTS ***********************/
@@ -60,6 +66,8 @@ public class PlayerSkeleton {
 	private double[] adjustments; //Contains the values of adjustments to be made to each weight 
 	private double maxAvgScore; //The maximum average score carried over from previous sessions
 	
+	private ExecutorService service = Executors.newCachedThreadPool();
+
 	/********************* CONSTRUCTOR *********************/
 	public PlayerSkeleton() throws IOException {	
 		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
@@ -71,10 +79,29 @@ public class PlayerSkeleton {
 	
 	//Plays the specified number of games, and returns the average score.
 	private double playGames(int numGamesToPlay) {
+		
+		ArrayList<Future<Integer>> scores = new ArrayList<>(numGamesToPlay);
+		
+		for (int i = 0; i < numGamesToPlay; i++) {
+			
+			Future<Integer> score = service.submit(new Callable<Integer>(){
+				@Override
+				public Integer call() throws Exception {
+					return playGame();
+				}
+			});
+			
+			scores.add(score);
+		}
+		
 		int sumOfScores = 0;
 		
 		for (int i = 0; i < numGamesToPlay; i++) {
-			sumOfScores += playGame();
+			try {
+				sumOfScores += scores.get(i).get();
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		return (double) sumOfScores / numGamesToPlay;
@@ -166,6 +193,8 @@ public class PlayerSkeleton {
 		
 			currWeightIndex = (currWeightIndex + 1) % (VECTOR_SIZE);
 		}
+		
+		service.shutdown();
 	}
 	
 	private int pickMove(State s, int[][] legalMoves) {
@@ -331,7 +360,7 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) throws IOException {
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.improveVector(VECTOR_SIZE * 100, 10);
+		p.improveVector(VECTOR_SIZE * 100, 30);
 		p.writeVectorToFile(FILENAME_VECTOR);
 		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}

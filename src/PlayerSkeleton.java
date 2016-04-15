@@ -13,12 +13,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class PlayerSkeleton {
-	/*********************  CONSTANTS ***********************/
+	
+    //================================================================================
+    // Constants
+    //================================================================================
+	
 	private static final int VECTOR_SIZE = 21;
 	private static final String FILENAME_VECTOR = "weights.txt";
 	private static final String FILENAME_SCORE = "score.txt";
 	
-	/********************* CLASS ATTRIBUTES **************/
+    //================================================================================
+    // Fields
+    //================================================================================
+	
 	private static int[][] pWidth = {
 			{2},
 			{1,4},
@@ -59,75 +66,27 @@ public class PlayerSkeleton {
 		{{2,2,1},{2,3}}
 	};
 	
-	/********************* INSTANCE ATTRIBUTES ********************/
 	private double[] weightVector;
 	private double[] adjustments; //Contains the values of adjustments to be made to each weight 
 	private double maxAvgScore; //The maximum average score carried over from previous sessions
-	
-	private ExecutorService service = Executors.newCachedThreadPool();
+	private ExecutorService service = Executors.newCachedThreadPool(); //To manage asynchronous and concurrent threads.
 
-	/********************* CONSTRUCTOR *********************/
+    //================================================================================
+    // Constructor
+    //================================================================================
+	
 	public PlayerSkeleton() throws IOException {	
 		weightVector = new double[VECTOR_SIZE]; //All values initialized to 0
 		adjustments = new double[VECTOR_SIZE];
-		Arrays.fill(adjustments, -0.001); //Stub for now, can be fine-tuned later on
+		Arrays.fill(adjustments, -0.001); //Can be fine-tuned
 		readVectorFromFile(FILENAME_VECTOR);
 		readScoreFromFile(FILENAME_SCORE);
 	}
 	
-	//Plays the specified number of games, and returns the average score.
-	private double playGames(int numGamesToPlay) {
-		
-		ArrayList<Future<Integer>> scores = new ArrayList<>(numGamesToPlay);
-		
-		for (int i = 0; i < numGamesToPlay; i++) {
-			
-			Future<Integer> score = service.submit(new Callable<Integer>(){
-				@Override
-				public Integer call() throws Exception {
-					return playGame();
-				}
-			});
-			
-			scores.add(score);
-		}
-		
-		int sumOfScores = 0;
-		
-		for (int i = 0; i < numGamesToPlay; i++) {
-			try {
-				sumOfScores += scores.get(i).get();
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		return (double) sumOfScores / numGamesToPlay;
-	}
+    //================================================================================
+    // File IO methods
+    //================================================================================
 	
-	//Plays a game and returns the score i.e number of rows cleared.
-	private int playGame() {
-		State s = new State();
-		//new TFrame(s);
-		
-		while(!s.hasLost()) {
-			s.makeMove(pickMove(s, s.legalMoves()));
-			//s.draw();
-			//s.drawNext(0,0);
-			
-			/*try {
-				Thread.sleep(300);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}*/
-		}
-		
-		//System.out.println("You have completed "+s.getRowsCleared()+" rows.");
-		
-		return s.getRowsCleared();
-	}
-	
-	/********************* FILE IO METHODS ********************/
 	private void writeVectorToFile(String fileName) throws FileNotFoundException {
 		PrintWriter pw = new PrintWriter(new File(fileName)); //Tries to create the file if it does not exist
 		
@@ -175,18 +134,23 @@ public class PlayerSkeleton {
 		}
 	}
 	
-	//Improves the current weight vector via an iterative learning method.
+    //================================================================================
+    // Miscellaneous
+    //================================================================================
+	
+	//Improves the current weight vector via an iterative learning method. Uncomment the lines if you want to improve 
+	//the vector.
 	private void improveVector(int numAdjustments, int numGamesToPlay) {
 		int currWeightIndex = 0; //Index of current weight to be adjusted
 		
 		for (int i = 0; i < numAdjustments; i++) {
-			weightVector[currWeightIndex] += adjustments[currWeightIndex];
+			//weightVector[currWeightIndex] += adjustments[currWeightIndex];
 			double currAvgScore = playGames(numGamesToPlay);
 
 			if (currAvgScore > maxAvgScore) {
 				maxAvgScore = currAvgScore;
 			} else { 
-				weightVector[currWeightIndex] -= adjustments[currWeightIndex]; //Undo adjustments
+				//weightVector[currWeightIndex] -= adjustments[currWeightIndex]; //Undo adjustments
 			}
 		
 			currWeightIndex = (currWeightIndex + 1) % (VECTOR_SIZE);
@@ -195,6 +159,58 @@ public class PlayerSkeleton {
 		service.shutdown();
 	}
 	
+	//Plays the specified number of games, and returns the average score. Here, games are played in separate threads 
+	//to facilitate parallelization.
+	private double playGames(int numGamesToPlay) {
+		ArrayList<Future<Integer>> scores = new ArrayList<>(numGamesToPlay);
+		
+		for (int i = 0; i < numGamesToPlay; i++) {
+			Future<Integer> score = service.submit(new Callable<Integer>(){
+				@Override
+				public Integer call() throws Exception {
+					return playGame();
+				}
+			});
+			
+			scores.add(score);
+		}
+		
+		int sumOfScores = 0;
+		
+		for (int i = 0; i < numGamesToPlay; i++) {
+			try {
+				sumOfScores += scores.get(i).get();
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return (double) sumOfScores / numGamesToPlay;
+	}
+	
+	//Plays a game and returns the score i.e number of rows cleared. Uncomment the lines if you want to see visual output.
+	private int playGame() {
+		State s = new State();
+		//new TFrame(s);
+		
+		while(!s.hasLost()) {
+			s.makeMove(pickMove(s, s.legalMoves()));
+			//s.draw();
+			//s.drawNext(0,0);
+			
+			/*try {
+				Thread.sleep(300);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}*/
+		}
+		
+		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+		
+		return s.getRowsCleared();
+	}
+	
+	//Out of all the moves that can be made, choose the one that yields the highest reward + utility.
 	private int pickMove(State s, int[][] legalMoves) {
 		int optimalMove = 0;
 		double maxEvaluation = -Double.MAX_VALUE;
@@ -211,6 +227,7 @@ public class PlayerSkeleton {
 		return optimalMove;
 	}
 	
+	//Simulates the making of a move and returns the sum of the reward and utility as a result of making that move.
 	private double simulate(State state, int move) {
 		int[][] simulatedField = copyField(state.getField());
 		int[] simulatedTop = Arrays.copyOf(state.getTop(), state.getTop().length);
@@ -221,6 +238,7 @@ public class PlayerSkeleton {
 		return reward + utility;
 	}
 	
+	//Calculate the utility of a given state, using the linear weighted sum of feature functions.
 	private double calculateUtility(int[][] field, int[] top) {
 		double utility = 0;
 		int[] features = new int[VECTOR_SIZE];
@@ -306,7 +324,9 @@ public class PlayerSkeleton {
 		
 		return rowsCleared;
 	}
-
+	
+	//Copy the field (state) into another array, so that moves can be made on the new array without modifying the original
+	//array.
 	private int[][] copyField(int[][] originalField) {
 		int[][] simulatedField = new int[State.ROWS][State.COLS];
 
@@ -318,6 +338,10 @@ public class PlayerSkeleton {
 
 		return simulatedField;
 	}
+	
+    //================================================================================
+    // Feature functions
+    //================================================================================
 	
 	public int getColHeight(int[] top, int col) {
 	    return top[col];
@@ -358,7 +382,9 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) throws IOException {
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.improveVector(VECTOR_SIZE * 100, 30);
+		int numAdjustments = VECTOR_SIZE * 100; //The total number of adjustments to be made to the weight vector.  
+		int numGamesToPlay = 30; //The number of games to play for each adjustment.
+		p.improveVector(numAdjustments, numGamesToPlay);
 		p.writeVectorToFile(FILENAME_VECTOR);
 		p.writeScoreToFile(p.maxAvgScore, FILENAME_SCORE);
 	}
